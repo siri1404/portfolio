@@ -306,7 +306,7 @@ export default function Home() {
           opacity: isNavVisible ? 1 : 0,
           transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
-        className="fixed top-0 left-0 w-full py-4 z-50 bg-white/95 backdrop-blur-md shadow-lg"
+        className="fixed top-0 left-0 w-full py-4 z-50 bg-gradient-to-r from-pink-50/80 via-rose-50/80 to-pink-50/80 backdrop-blur-sm"
       >
         {/* Home text in left corner */}
         <div className="absolute left-4 sm:left-8 text-pink-600 text-sm sm:text-base font-bold">
