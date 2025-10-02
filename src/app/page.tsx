@@ -7,9 +7,8 @@ export default function Home() {
   const nameRef = useRef<HTMLDivElement>(null);
   const imagesRef = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLDivElement>(null);
-  const stickyNavRef = useRef<HTMLDivElement>(null);
   const [isRevealComplete, setIsRevealComplete] = useState(false);
-  const [isNavVisible, setIsNavVisible] = useState(false);
+  const [isNavSticky, setIsNavSticky] = useState(false);
   const wheelHandlerRef = useRef<((e: WheelEvent) => void) | null>(null);
   const navOriginalTopRef = useRef<number>(0);
 
@@ -175,11 +174,11 @@ export default function Home() {
       const scrollY = window.scrollY;
       const originalTop = navOriginalTopRef.current;
 
-      // Show sticky nav when scrolling past original position
+      // Make nav sticky when scrolling past original position
       if (scrollY >= originalTop - 10) {
-        setIsNavVisible(true);
+        setIsNavSticky(true);
       } else {
-        setIsNavVisible(false);
+        setIsNavSticky(false);
       }
     };
 
@@ -273,10 +272,17 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Original Navigation - stays in place */}
+      {/* Navigation - becomes sticky when scrolling */}
       <div
         ref={navRef}
-        className="absolute top-[67vh] left-0 w-full py-4"
+        style={{
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+        className={`${
+          isNavSticky
+            ? 'fixed top-0 left-0 bg-gradient-to-r from-pink-50/90 via-rose-50/90 to-pink-50/90 backdrop-blur-md shadow-md'
+            : 'absolute top-[67vh] left-0'
+        } w-full py-4 z-50`}
       >
         {/* Home text in left corner below images */}
         <div className="absolute left-4 sm:left-8 text-pink-600 text-sm sm:text-base font-bold">
@@ -297,37 +303,6 @@ export default function Home() {
           menu
         </div>
       </div>
-
-      {/* Sticky Navigation - appears at top when scrolling */}
-      <div
-        ref={stickyNavRef}
-        style={{
-          transform: isNavVisible ? 'translateY(0)' : 'translateY(-100%)',
-          opacity: isNavVisible ? 1 : 0,
-          transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-        }}
-        className="fixed top-0 left-0 w-full py-4 z-50 bg-gradient-to-r from-pink-50/80 via-rose-50/80 to-pink-50/80 backdrop-blur-sm"
-      >
-        {/* Home text in left corner */}
-        <div className="absolute left-4 sm:left-8 text-pink-600 text-sm sm:text-base font-bold">
-          home
-        </div>
-
-        {/* Navigation items in center */}
-        <div className="absolute left-1/2 -translate-x-1/2 text-pink-600 text-xs sm:text-sm md:text-base font-bold flex flex-wrap gap-2 sm:gap-4 items-center justify-center">
-          <span className="whitespace-nowrap">projects</span>
-          <span className="whitespace-nowrap">work</span>
-          <span className="whitespace-nowrap">resume</span>
-          <span className="whitespace-nowrap">contact</span>
-          <span className="whitespace-nowrap ml-4 sm:ml-8">dark/light</span>
-        </div>
-
-        {/* Menu text in right corner */}
-        <div className="absolute right-4 sm:right-8 text-pink-600 text-sm sm:text-base font-bold">
-          menu
-        </div>
-      </div>
-
 
 
       {/* Main content */}
