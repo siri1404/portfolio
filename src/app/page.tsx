@@ -1,103 +1,322 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { gsap } from "gsap";
+import Lenis from "lenis";
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const nameRef = useRef<HTMLDivElement>(null);
+  const imagesRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLDivElement>(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [isRevealComplete, setIsRevealComplete] = useState(false);
+  const [isNavSticky, setIsNavSticky] = useState(false);
+  const wheelHandlerRef = useRef<((e: WheelEvent) => void) | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+  useEffect(() => {
+    // Initial name animation setup - starts hidden
+    if (nameRef.current) {
+      gsap.set(nameRef.current, {
+        clipPath: "inset(0 0 100% 0)", // Hidden from bottom
+        opacity: 0,
+        scale: 0.8,
+      });
+    }
+
+    // Initial images setup - start hidden from top
+    if (imagesRef.current) {
+      gsap.set(imagesRef.current, {
+        y: -window.innerHeight * 0.6, // Start above viewport
+        opacity: 0,
+      });
+    }
+
+    // Initial navigation setup - start hidden
+    if (navRef.current) {
+      gsap.set(navRef.current, {
+        opacity: 0,
+      });
+    }
+
+    // Create timeline for sequential animations
+    const tl = gsap.timeline();
+
+    // First: Animate the name sliding down from top to bottom
+    tl.to(nameRef.current, {
+      opacity: 1, // Fade in
+      clipPath: "inset(0 0 0% 0)", // Fully revealed
+      scale: 1,
+      duration: 0.8,
+      ease: "power2.out",
+      delay: 0.2,
+    });
+
+    // Second: Move name to left corner and make larger
+    tl.to(nameRef.current, {
+      x: -420, // Move to left-8 position (32px from left)
+      y: 315, // Move to 85% from top
+      scale: 1.5, // Make larger
+      duration: 1.2,
+      ease: "power2.out",
+    }, "-=0.2");
+
+    // Third: Reveal images after name reaches final position
+    tl.to(imagesRef.current, {
+      y: 0, // Move to final position
+      opacity: 1, // Fade in
+      duration: 1.2,
+      ease: "power2.out",
+    }, "-=0.4") // Start after name is mostly in place
+    .to(navRef.current, {
+      opacity: 1, // Fade in navigation
+      duration: 0.8,
+      ease: "power2.out",
+    }, "-=0.4"); // Start after images are mostly in place
+
+    // Global scroll handler - prevents page scroll and handles image reveal
+    let accumulatedScroll = 0;
+    const maxScroll = 1000; // Total scroll needed for full reveal
+
+    const handleWheel = (e: WheelEvent) => {
+      // If reveal is already complete, allow normal page scrolling
+      if (isRevealComplete) {
+        return; // Allow normal page scrolling
+      }
+
+      // Calculate current reveal progress
+      const progress = Math.min(accumulatedScroll / maxScroll, 1);
+      const rightReveal = Math.min(Math.max((progress - 0.625) * (8/3), 0), 1);
+
+      // If third column is not completely revealed, prevent page scroll and handle image reveal
+      if (rightReveal < 1) {
+        e.preventDefault(); // Prevent page scrolling
+        e.stopPropagation();
+
+        // Accumulate scroll delta
+        accumulatedScroll += e.deltaY;
+        accumulatedScroll = Math.max(0, Math.min(accumulatedScroll, maxScroll));
+        
+        const newProgress = Math.min(accumulatedScroll / maxScroll, 1);
+        setScrollProgress(newProgress);
+
+        // Calculate reveal percentages for each panel
+        const leftReveal = Math.min(Math.max(newProgress * (4/3), 0), 1);
+        const middleReveal = Math.min(Math.max((newProgress - 0.375) * 2, 0), 1);
+        const rightReveal = Math.min(Math.max((newProgress - 0.625) * (8/3), 0), 1);
+
+        // Apply clip-path reveals
+        const revealLayers = document.querySelectorAll('[data-reveal-layer]');
+        if (revealLayers.length >= 3) {
+          // Left panel
+          (revealLayers[0] as HTMLElement).style.clipPath = `inset(${100 - (leftReveal * 100)}% 0 0 0)`;
+          // Middle panel
+          (revealLayers[1] as HTMLElement).style.clipPath = `inset(${100 - (middleReveal * 100)}% 0 0 0)`;
+          // Right panel
+          (revealLayers[2] as HTMLElement).style.clipPath = `inset(${100 - (rightReveal * 100)}% 0 0 0)`;
+        }
+
+        // Check if reveal is complete
+        if (rightReveal >= 1 && !isRevealComplete) {
+          setIsRevealComplete(true);
+        }
+      } else {
+        // Third column is complete, allow normal page scrolling
+        setIsRevealComplete(true);
+      }
+    };
+
+    // Store the handler in ref
+    wheelHandlerRef.current = handleWheel;
+
+    // Add global wheel event listener
+    window.addEventListener('wheel', handleWheel, { passive: false });
+
+    return () => {
+      if (wheelHandlerRef.current) {
+        window.removeEventListener('wheel', wheelHandlerRef.current);
+      }
+    };
+  }, []);
+
+  // Remove event listener when reveal is complete
+  useEffect(() => {
+    if (isRevealComplete && wheelHandlerRef.current) {
+      window.removeEventListener('wheel', wheelHandlerRef.current);
+      wheelHandlerRef.current = null;
+    }
+  }, [isRevealComplete]);
+
+  // Handle sticky navigation when scrolling after reveal is complete
+  useEffect(() => {
+    if (!isRevealComplete || !navRef.current) return;
+
+    const handleScroll = () => {
+      const navElement = navRef.current;
+      if (!navElement) return;
+
+      // Get the navigation element's position relative to the viewport
+      const navRect = navElement.getBoundingClientRect();
+      const navTop = navRect.top;
+      
+      // Navigation should become sticky when it reaches the top of the viewport
+      // (when navTop <= 0, meaning the top of the nav element is at or above the viewport top)
+      if (navTop <= 0) {
+        setIsNavSticky(true);
+      } else {
+        setIsNavSticky(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isRevealComplete]);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-pink-100 via-pink-50 to-rose-100 relative">
+      {/* Background decorative elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-pink-200 rounded-full opacity-20 blur-3xl"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-rose-200 rounded-full opacity-15 blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-pink-300 rounded-full opacity-10 blur-3xl"></div>
+      </div>
+      
+      {/* Three images at the top */}
+      <div ref={imagesRef} className="absolute top-0 left-0 w-full h-[65vh] flex">
+        <div className="w-1/3 h-full relative overflow-hidden">
+          {/* Base layer - always visible */}
+          <div className="absolute inset-0">
+            <img 
+              src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop" 
+              alt="Mountain landscape" 
+              className="w-full h-full object-cover"
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          </div>
+          {/* Reveal layer - clips based on scroll */}
+          <div 
+            className="absolute inset-0 overflow-hidden"
+            data-reveal-layer
+            style={{
+              clipPath: "inset(100% 0 0 0)", // Hidden from top initially
+            }}
           >
-            Read our docs
-          </a>
+            <img 
+              src="https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=800&h=600&fit=crop" 
+              alt="City skyline" 
+              className="w-full h-full object-cover"
+            />
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+        <div className="w-1/3 h-full relative overflow-hidden">
+          {/* Base layer */}
+          <div className="absolute inset-0">
+            <img 
+              src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&h=600&fit=crop" 
+              alt="Forest path" 
+              className="w-full h-full object-cover"
+            />
+          </div>
+          {/* Reveal layer */}
+          <div 
+            className="absolute inset-0 overflow-hidden"
+            data-reveal-layer
+            style={{
+              clipPath: "inset(100% 0 0 0)", // Hidden from top initially
+            }}
+          >
+            <img 
+              src="https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800&h=600&fit=crop" 
+              alt="Desert landscape" 
+              className="w-full h-full object-cover"
+            />
+          </div>
+        </div>
+        <div className="w-1/3 h-full relative overflow-hidden">
+          {/* Base layer */}
+          <div className="absolute inset-0">
+            <img 
+              src="https://images.unsplash.com/photo-1439066615861-d1af74d74000?w=800&h=600&fit=crop" 
+              alt="Ocean waves" 
+              className="w-full h-full object-cover"
+            />
+          </div>
+          {/* Reveal layer */}
+          <div 
+            className="absolute inset-0 overflow-hidden"
+            data-reveal-layer
+            style={{
+              clipPath: "inset(100% 0 0 0)", // Hidden from top initially
+            }}
+          >
+            <img 
+              src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop" 
+              alt="Snow mountains" 
+              className="w-full h-full object-cover"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation elements */}
+      <div 
+        ref={navRef} 
+        className={`absolute top-[67vh] left-0 w-full transition-all duration-300 ${
+          isNavSticky 
+            ? 'fixed top-0 left-0 z-50 bg-white/90 backdrop-blur-sm shadow-lg' 
+            : ''
+        }`}
+        style={{
+          position: isNavSticky ? 'fixed' : 'absolute',
+          top: isNavSticky ? '0' : '67vh',
+          left: '0',
+          width: '100%',
+          zIndex: isNavSticky ? 50 : 'auto'
+        }}
+      >
+        {/* Home text in left corner below images */}
+        <div className="absolute left-8 text-pink-600 text-base font-bold">
+          home
+        </div>
+
+        {/* Navigation items below center image */}
+        <div className="absolute left-1/2 text-pink-600 text-base font-bold">
+          <span>projects,  work,  resume,  contact</span>
+          <span className="ml-16">dark/light</span>
+        </div>
+
+        {/* Menu text in right corner */}
+        <div className="absolute right-8 text-pink-600 text-base font-bold">
+          menu
+        </div>
+      </div>
+
+
+
+      {/* Main content */}
+      <div className="relative z-20 flex items-center justify-center min-h-screen">
+        <div
+          ref={nameRef}
+          className="relative"
+          style={{ opacity: 0 }}
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          <h1 
+            className="text-4xl md:text-6xl text-pink-600 tracking-tight space-grotesk-bold"
+          >
+            Pooja Kanala
+          </h1>
+        </div>
+      </div>
+
+      {/* Next Page - only accessible after image reveal is complete */}
+      <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-4xl md:text-6xl text-blue-600 tracking-tight space-grotesk-bold mb-8">
+            Projects
+          </h2>
+          <p className="text-lg text-blue-500 max-w-2xl mx-auto">
+            This page is only accessible after all images are completely revealed. Scroll up to see the image reveal system in action.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
