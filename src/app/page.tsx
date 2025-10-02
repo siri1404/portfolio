@@ -2,13 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
-import Lenis from "lenis";
 
 export default function Home() {
   const nameRef = useRef<HTMLDivElement>(null);
   const imagesRef = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLDivElement>(null);
-  const [scrollProgress, setScrollProgress] = useState(0);
   const [isRevealComplete, setIsRevealComplete] = useState(false);
   const [isNavSticky, setIsNavSticky] = useState(false);
   const wheelHandlerRef = useRef<((e: WheelEvent) => void) | null>(null);
@@ -95,9 +93,8 @@ export default function Home() {
         // Accumulate scroll delta
         accumulatedScroll += e.deltaY;
         accumulatedScroll = Math.max(0, Math.min(accumulatedScroll, maxScroll));
-        
+
         const newProgress = Math.min(accumulatedScroll / maxScroll, 1);
-        setScrollProgress(newProgress);
 
         // Calculate reveal percentages for each panel
         const leftReveal = Math.min(Math.max(newProgress * (4/3), 0), 1);
