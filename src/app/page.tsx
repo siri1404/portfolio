@@ -10,6 +10,7 @@ export default function Home() {
   const [isRevealComplete, setIsRevealComplete] = useState(false);
   const [isNavSticky, setIsNavSticky] = useState(false);
   const wheelHandlerRef = useRef<((e: WheelEvent) => void) | null>(null);
+  const navOriginalTopRef = useRef<number>(0);
 
   useEffect(() => {
     // Initial name animation setup - starts hidden
@@ -49,11 +50,21 @@ export default function Home() {
       delay: 0.2,
     });
 
-    // Second: Move name to left corner and make larger
+    // Second: Move name to left corner and make larger (responsive)
     tl.to(nameRef.current, {
-      x: -420, // Move to left-8 position (32px from left)
-      y: 315, // Move to 85% from top
-      scale: 1.5, // Make larger
+      x: () => {
+        const viewportWidth = window.innerWidth;
+        if (viewportWidth < 640) return -viewportWidth * 0.35;
+        if (viewportWidth < 1024) return -viewportWidth * 0.38;
+        return -420;
+      },
+      y: () => {
+        const viewportHeight = window.innerHeight;
+        if (window.innerWidth < 640) return viewportHeight * 0.45;
+        if (window.innerWidth < 1024) return viewportHeight * 0.48;
+        return 315;
+      },
+      scale: () => window.innerWidth < 640 ? 1.2 : window.innerWidth < 1024 ? 1.3 : 1.5,
       duration: 1.2,
       ease: "power2.out",
     }, "-=0.2");
@@ -71,9 +82,9 @@ export default function Home() {
       ease: "power2.out",
     }, "-=0.4"); // Start after images are mostly in place
 
-    // Global scroll handler - prevents page scroll and handles image reveal
+    // Global scroll handler - prevents page scroll and handles image reveal with smooth transitions
     let accumulatedScroll = 0;
-    const maxScroll = 1000; // Total scroll needed for full reveal
+    const maxScroll = 1500; // Total scroll needed for full reveal (increased for smoother animation)
 
     const handleWheel = (e: WheelEvent) => {
       // If reveal is already complete, allow normal page scrolling
@@ -101,14 +112,17 @@ export default function Home() {
         const middleReveal = Math.min(Math.max((newProgress - 0.375) * 2, 0), 1);
         const rightReveal = Math.min(Math.max((newProgress - 0.625) * (8/3), 0), 1);
 
-        // Apply clip-path reveals
+        // Apply clip-path reveals with smooth transitions
         const revealLayers = document.querySelectorAll('[data-reveal-layer]');
         if (revealLayers.length >= 3) {
           // Left panel
+          (revealLayers[0] as HTMLElement).style.transition = 'clip-path 0.1s ease-out';
           (revealLayers[0] as HTMLElement).style.clipPath = `inset(${100 - (leftReveal * 100)}% 0 0 0)`;
           // Middle panel
+          (revealLayers[1] as HTMLElement).style.transition = 'clip-path 0.1s ease-out';
           (revealLayers[1] as HTMLElement).style.clipPath = `inset(${100 - (middleReveal * 100)}% 0 0 0)`;
           // Right panel
+          (revealLayers[2] as HTMLElement).style.transition = 'clip-path 0.1s ease-out';
           (revealLayers[2] as HTMLElement).style.clipPath = `inset(${100 - (rightReveal * 100)}% 0 0 0)`;
         }
 
@@ -147,17 +161,21 @@ export default function Home() {
   useEffect(() => {
     if (!isRevealComplete || !navRef.current) return;
 
+    // Store original position on first reveal
+    if (navOriginalTopRef.current === 0 && navRef.current) {
+      const rect = navRef.current.getBoundingClientRect();
+      navOriginalTopRef.current = rect.top + window.scrollY;
+    }
+
     const handleScroll = () => {
       const navElement = navRef.current;
       if (!navElement) return;
 
-      // Get the navigation element's position relative to the viewport
-      const navRect = navElement.getBoundingClientRect();
-      const navTop = navRect.top;
-      
-      // Navigation should become sticky when it reaches the top of the viewport
-      // (when navTop <= 0, meaning the top of the nav element is at or above the viewport top)
-      if (navTop <= 0) {
+      const scrollY = window.scrollY;
+      const originalTop = navOriginalTopRef.current;
+
+      // Navigation becomes sticky when scroll passes its original position
+      if (scrollY >= originalTop) {
         setIsNavSticky(true);
       } else {
         setIsNavSticky(false);
@@ -165,6 +183,7 @@ export default function Home() {
     };
 
     window.addEventListener('scroll', handleScroll);
+    handleScroll(); // Check initial state
     return () => window.removeEventListener('scroll', handleScroll);
   }, [isRevealComplete]);
 
@@ -254,34 +273,30 @@ export default function Home() {
       </div>
 
       {/* Navigation elements */}
-      <div 
-        ref={navRef} 
-        className={`absolute top-[67vh] left-0 w-full transition-all duration-300 ${
-          isNavSticky 
-            ? 'fixed top-0 left-0 z-50 bg-white/90 backdrop-blur-sm shadow-lg' 
-            : ''
-        }`}
-        style={{
-          position: isNavSticky ? 'fixed' : 'absolute',
-          top: isNavSticky ? '0' : '67vh',
-          left: '0',
-          width: '100%',
-          zIndex: isNavSticky ? 50 : 'auto'
-        }}
+      <div
+        ref={navRef}
+        className={`transition-all duration-300 ${
+          isNavSticky
+            ? 'fixed top-0 left-0 z-50 bg-white/95 backdrop-blur-md shadow-lg'
+            : 'absolute top-[67vh] left-0'
+        } w-full py-4`}
       >
         {/* Home text in left corner below images */}
-        <div className="absolute left-8 text-pink-600 text-base font-bold">
+        <div className="absolute left-4 sm:left-8 text-pink-600 text-sm sm:text-base font-bold">
           home
         </div>
 
         {/* Navigation items below center image */}
-        <div className="absolute left-1/2 text-pink-600 text-base font-bold">
-          <span>projects,  work,  resume,  contact</span>
-          <span className="ml-16">dark/light</span>
+        <div className="absolute left-1/2 -translate-x-1/2 text-pink-600 text-xs sm:text-sm md:text-base font-bold flex flex-wrap gap-2 sm:gap-4 items-center justify-center">
+          <span className="whitespace-nowrap">projects</span>
+          <span className="whitespace-nowrap">work</span>
+          <span className="whitespace-nowrap">resume</span>
+          <span className="whitespace-nowrap">contact</span>
+          <span className="whitespace-nowrap ml-4 sm:ml-8">dark/light</span>
         </div>
 
         {/* Menu text in right corner */}
-        <div className="absolute right-8 text-pink-600 text-base font-bold">
+        <div className="absolute right-4 sm:right-8 text-pink-600 text-sm sm:text-base font-bold">
           menu
         </div>
       </div>
@@ -289,14 +304,14 @@ export default function Home() {
 
 
       {/* Main content */}
-      <div className="relative z-20 flex items-center justify-center min-h-screen">
+      <div className="relative z-20 flex items-center justify-center min-h-screen px-4">
         <div
           ref={nameRef}
           className="relative"
           style={{ opacity: 0 }}
         >
-          <h1 
-            className="text-4xl md:text-6xl text-pink-600 tracking-tight space-grotesk-bold"
+          <h1
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-pink-600 tracking-tight space-grotesk-bold whitespace-nowrap"
           >
             Pooja Kanala
           </h1>
