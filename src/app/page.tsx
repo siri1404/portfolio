@@ -7,8 +7,9 @@ export default function Home() {
   const nameRef = useRef<HTMLDivElement>(null);
   const imagesRef = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLDivElement>(null);
+  const stickyNavRef = useRef<HTMLDivElement>(null);
   const [isRevealComplete, setIsRevealComplete] = useState(false);
-  const [isNavSticky, setIsNavSticky] = useState(false);
+  const [isNavVisible, setIsNavVisible] = useState(false);
   const wheelHandlerRef = useRef<((e: WheelEvent) => void) | null>(null);
   const navOriginalTopRef = useRef<number>(0);
 
@@ -174,11 +175,11 @@ export default function Home() {
       const scrollY = window.scrollY;
       const originalTop = navOriginalTopRef.current;
 
-      // Navigation becomes sticky when scroll passes its original position
-      if (scrollY >= originalTop) {
-        setIsNavSticky(true);
+      // Show sticky nav when scrolling past original position
+      if (scrollY >= originalTop - 10) {
+        setIsNavVisible(true);
       } else {
-        setIsNavSticky(false);
+        setIsNavVisible(false);
       }
     };
 
@@ -272,14 +273,10 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Navigation elements */}
+      {/* Original Navigation - stays in place */}
       <div
         ref={navRef}
-        className={`transition-all duration-300 ${
-          isNavSticky
-            ? 'fixed top-0 left-0 z-50 bg-white/95 backdrop-blur-md shadow-lg'
-            : 'absolute top-[67vh] left-0'
-        } w-full py-4`}
+        className="absolute top-[67vh] left-0 w-full py-4"
       >
         {/* Home text in left corner below images */}
         <div className="absolute left-4 sm:left-8 text-pink-600 text-sm sm:text-base font-bold">
@@ -287,6 +284,33 @@ export default function Home() {
         </div>
 
         {/* Navigation items below center image */}
+        <div className="absolute left-1/2 -translate-x-1/2 text-pink-600 text-xs sm:text-sm md:text-base font-bold flex flex-wrap gap-2 sm:gap-4 items-center justify-center">
+          <span className="whitespace-nowrap">projects</span>
+          <span className="whitespace-nowrap">work</span>
+          <span className="whitespace-nowrap">resume</span>
+          <span className="whitespace-nowrap">contact</span>
+          <span className="whitespace-nowrap ml-4 sm:ml-8">dark/light</span>
+        </div>
+
+        {/* Menu text in right corner */}
+        <div className="absolute right-4 sm:right-8 text-pink-600 text-sm sm:text-base font-bold">
+          menu
+        </div>
+      </div>
+
+      {/* Sticky Navigation - appears at top when scrolling */}
+      <div
+        ref={stickyNavRef}
+        className={`fixed top-0 left-0 w-full py-4 z-50 bg-white/95 backdrop-blur-md shadow-lg transition-all duration-500 ease-out ${
+          isNavVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
+        }`}
+      >
+        {/* Home text in left corner */}
+        <div className="absolute left-4 sm:left-8 text-pink-600 text-sm sm:text-base font-bold">
+          home
+        </div>
+
+        {/* Navigation items in center */}
         <div className="absolute left-1/2 -translate-x-1/2 text-pink-600 text-xs sm:text-sm md:text-base font-bold flex flex-wrap gap-2 sm:gap-4 items-center justify-center">
           <span className="whitespace-nowrap">projects</span>
           <span className="whitespace-nowrap">work</span>
