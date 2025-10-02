@@ -301,9 +301,12 @@ export default function Home() {
       {/* Sticky Navigation - appears at top when scrolling */}
       <div
         ref={stickyNavRef}
-        className={`fixed top-0 left-0 w-full py-4 z-50 bg-white/95 backdrop-blur-md shadow-lg transition-all duration-500 ease-out ${
-          isNavVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
-        }`}
+        style={{
+          transform: isNavVisible ? 'translateY(0)' : 'translateY(-100%)',
+          opacity: isNavVisible ? 1 : 0,
+          transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+        className="fixed top-0 left-0 w-full py-4 z-50 bg-white/95 backdrop-blur-md shadow-lg"
       >
         {/* Home text in left corner */}
         <div className="absolute left-4 sm:left-8 text-pink-600 text-sm sm:text-base font-bold">
